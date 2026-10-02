@@ -3,17 +3,19 @@ from functools import wraps
 from datetime import datetime
 import pandas as pd
 import io
+import math
 
 app = Flask(__name__)
 app.secret_key = 'kku_computing_secret_key'
 
-# 1. ผู้ใช้งานและสิทธิ์ (Role-based)
+# 1. ผู้ใช้งานและสิทธิ์ (Admin, Staff, Customer)
 USERS = {
     "admin": {"password": "123", "role": "admin", "name": "ผู้ดูแลระบบ"},
-    "staff": {"password": "123", "role": "staff", "name": "พนักงานคลัง"}
+    "staff": {"password": "123", "role": "staff", "name": "พนักงานคลัง"},
+    "customer": {"password": "123", "role": "customer", "name": "ลูกค้าทั่วไป"}
 }
 
-# 2. ทะเบียนสินค้าสมจริง 50 รายการ
+# 2. ทะเบียนสินค้า 50 รายการ
 products = [
     # --- หมวดอุปกรณ์สำนักงาน ---
     {"sku": "SKU-001", "name": "กระดาษ A4 80gsm (Double A)", "category": "อุปกรณ์สำนักงาน", "unit": "รีม", "cost_price": 105.00, "sell_price": 135.00, "qty": 8, "reorder_point": 10, "warehouse": "คลัง A"},
@@ -96,6 +98,15 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+def staff_or_admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if session.get('role') not in ['admin', 'staff']:
+            flash("สิทธิ์ Customer สามารถดูสินค้าได้เท่านั้น ไม่สามารถทำรายการสต็อกได้", "danger")
+            return redirect(url_for('inventory'))
+        return f(*args, **kwargs)
+    return decorated_function
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -106,11 +117,33 @@ def login():
             session['user'] = username
             session['role'] = user['role']
             session['name'] = user['name']
-            flash(f"ยินดีต้อนรับคุณ {user['name']}", "success")
+            flash(f"ยินดีต้อนรับคุณ {user['name']} (สิทธิ์: {user['role'].upper()})", "success")
             return redirect(url_for('inventory'))
         else:
             flash("ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง", "danger")
     return render_template('login.html')
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '').strip()
+        name = request.form.get('name', '').strip()
+
+        if not username or not password or not name:
+            flash("กรุณากรอกข้อมูลให้ครบทุกช่อง", "danger")
+            return redirect(url_for('register'))
+
+        if username in USERS:
+            flash("ชื่อผู้ใช้นี้มีในระบบแล้ว กรุณาใช้ชื่ออื่น", "warning")
+            return redirect(url_for('register'))
+
+        # สมัครสมาชิกใหม่จะได้รับสิทธิ์เป็น customer เสมอ
+        USERS[username] = {"password": password, "role": "customer", "name": name}
+        flash("สมัครสมาชิกสำเร็จ! กรุณาเข้าสู่ระบบ", "success")
+        return redirect(url_for('login'))
+
+    return render_template('register.html')
 
 @app.route('/logout')
 def logout():
@@ -123,16 +156,34 @@ def logout():
 @login_required
 def inventory():
     search = request.args.get('search', '').strip().lower()
+    page = int(request.args.get('page', 1))
+    per_page = 10  # แบ่งหน้า หน้าละ 10 รายการ
+
     filtered_products = []
     for p in products:
         match_search = (search in p['sku'].lower()) or (search in p['name'].lower())
         if match_search:
             p['is_low_stock'] = (p['qty'] <= p['reorder_point'])
             filtered_products.append(p)
-    return render_template('inventory.html', products=filtered_products, search=search)
+
+    total_items = len(filtered_products)
+    total_pages = math.ceil(total_items / per_page) if total_items > 0 else 1
+    page = max(1, min(page, total_pages))
+
+    start_idx = (page - 1) * per_page
+    end_idx = start_idx + per_page
+    paginated_products = filtered_products[start_idx:end_idx]
+
+    return render_template('inventory.html', 
+                           products=paginated_products, 
+                           search=search, 
+                           page=page, 
+                           total_pages=total_pages,
+                           total_items=total_items)
 
 @app.route('/stock/transact', methods=['POST'])
 @login_required
+@staff_or_admin_required
 def stock_transact():
     try:
         sku = request.form.get('sku', '').strip()
@@ -140,12 +191,10 @@ def stock_transact():
         qty = int(request.form.get('qty', 0))
         reason = request.form.get('reason', '').strip()
 
-        # ป้องกันไม่ให้ใส่เลข <= 0 สำหรับ รับเข้า (IN) และ เบิกออก (OUT)
         if trans_type in ['IN', 'OUT'] and qty <= 0:
             flash("จำนวนสินค้าต้องมากกว่า 0 เท่านั้น", "danger")
             return redirect(url_for('inventory'))
 
-        # ปรับยอด (ADJUST) ป้องกันไม่ให้ปรับค่าสต็อกคงเหลือติดลบ
         if trans_type == 'ADJUST' and qty < 0:
             flash("จำนวนสต็อกคงเหลือไม่สามารถติดลบได้", "danger")
             return redirect(url_for('inventory'))
@@ -180,7 +229,7 @@ def stock_transact():
             "user": session.get('name')
         })
 
-        flash(f"ทํารายการสำเร็จ! สินค้า {sku} ยอดคงเหลือใหม่คือ {product['qty']} {product['unit']}", "success")
+        flash(f"ทำรายการสำเร็จ! สินค้า {sku} ยอดคงเหลือใหม่คือ {product['qty']} {product['unit']}", "success")
 
     except ValueError:
         flash("กรุณากรอกตัวเลขจำนวนให้ถูกต้อง", "danger")
@@ -196,6 +245,7 @@ def stock_card(sku):
 
 @app.route('/po')
 @login_required
+@staff_or_admin_required
 def po_management():
     return render_template('po.html', suppliers=suppliers, pos=purchase_orders)
 
