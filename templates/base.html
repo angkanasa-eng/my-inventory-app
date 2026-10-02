@@ -12,13 +12,20 @@
         {% if session.user %}
             <div class="navbar-nav me-auto">
                 <a class="nav-link" href="{{ url_for('inventory') }}">ทะเบียนสินค้า</a>
-                <a class="nav-link" href="{{ url_for('po_management') }}">ใบสั่งซื้อ (PO)</a>
+                {% if session.role in ['admin', 'staff'] %}
+                    <a class="nav-link" href="{{ url_for('po_management') }}">ใบสั่งซื้อ (PO)</a>
+                {% endif %}
                 {% if session.role == 'admin' %}
                     <a class="nav-link text-warning" href="{{ url_for('dashboard') }}">Dashboard (Admin)</a>
                 {% endif %}
             </div>
-            <span class="navbar-text me-3 text-white">ผู้ใช้: {{ session.name }} ({{ session.role }})</span>
+            <span class="navbar-text me-3 text-white">ผู้ใช้: {{ session.name }} (<span class="badge bg-info text-dark">{{ session.role|upper }}</span>)</span>
             <a class="btn btn-outline-danger btn-sm" href="{{ url_for('logout') }}">ออกจากระบบ</a>
+        {% else %}
+            <div class="ms-auto">
+                <a class="btn btn-outline-light btn-sm me-2" href="{{ url_for('login') }}">เข้าสู่ระบบ</a>
+                <a class="btn btn-warning btn-sm" href="{{ url_for('register') }}">สมัครสมาชิก</a>
+            </div>
         {% endif %}
     </nav>
 
