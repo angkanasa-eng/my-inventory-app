@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-success text-white text-center">
+                <h4>สมัครสมาชิกใหม่ (Customer)</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('register') }}">
+                    <div class="mb-3">
+                        <label class="form-label">ชื่อ-นามสกุล</label>
+                        <input type="text" name="name" class="form-control" required placeholder="สมชาย ใจดี">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">ชื่อผู้ใช้งาน (Username)</label>
+                        <input type="text" name="username" class="form-control" required placeholder="ตั้งชื่อผู้ใช้">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">รหัสผ่าน (Password)</label>
+                        <input type="password" name="password" class="form-control" required placeholder="ตั้งรหัสผ่าน">
+                    </div>
+                    <button type="submit" class="btn btn-success w-100">ยืนยันสมัครสมาชิก</button>
+                </form>
+                <div class="text-center mt-3">
+                    <small>มีบัญชีผู้ใช้อยู่แล้ว? <a href="{{ url_for('login') }}">เข้าสู่ระบบ</a></small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
