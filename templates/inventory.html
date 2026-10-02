@@ -56,6 +56,7 @@
                 <td>{{ "%.2f"|format(p.cost_price) }} / {{ "%.2f"|format(p.sell_price) }} ฿</td>
                 <td>{{ p.warehouse }}</td>
                 <td>
+                    {% if session.role in ['admin', 'staff'] %}
                     <form action="{{ url_for('stock_transact') }}" method="POST" class="d-flex g-1">
                         <input type="hidden" name="sku" value="{{ p.sku }}">
                         <select name="trans_type" class="form-select form-select-sm me-1" style="width: 90px;">
@@ -67,6 +68,9 @@
                         <input type="text" name="reason" class="form-control form-control-sm me-1" style="width: 100px;" placeholder="เหตุผล">
                         <button type="submit" class="btn btn-sm btn-primary">บันทึก</button>
                     </form>
+                    {% else %}
+                        <span class="badge bg-light text-muted border">อ่านอย่างเดียว (Customer)</span>
+                    {% endif %}
                 </td>
                 <td>
                     <a href="{{ url_for('stock_card', sku=p.sku) }}" class="btn btn-sm btn-outline-info">📜 ประวัติ</a>
@@ -77,6 +81,26 @@
             {% endfor %}
         </tbody>
     </table>
+
+    <!-- ระบบแบ่งหน้า (Pagination) -->
+    {% if total_pages > 1 %}
+    <nav class="d-flex justify-content-between align-items-center mt-3 px-2">
+        <small class="text-muted">แสดงผลทั้งหมด {{ total_items }} รายการ (หน้า {{ page }} จาก {{ total_pages }})</small>
+        <ul class="pagination pagination-sm mb-0">
+            <li class="page-item {% if page <= 1 %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('inventory', page=page-1, search=search) }}">ก่อนหน้า</a>
+            </li>
+            {% for p in range(1, total_pages + 1) %}
+            <li class="page-item {% if p == page %}active{% endif %}">
+                <a class="page-link" href="{{ url_for('inventory', page=p, search=search) }}">{{ p }}</a>
+            </li>
+            {% endfor %}
+            <li class="page-item {% if page >= total_pages %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('inventory', page=page+1, search=search) }}">ถัดไป</a>
+            </li>
+        </ul>
+    </nav>
+    {% endif %}
 </div>
 {% endblock %}
 
