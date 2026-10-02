@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2 class="mb-4">สรุปรายงานภาพรวมระบบสต็อก (Admin Dashboard)</h2>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white p-3 shadow-sm">
+            <h5>จำนวน SKU ทั้งหมด</h5>
+            <h2>{{ total_skus }} รายการ</h2>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white p-3 shadow-sm">
+            <h5>จำนวนชิ้นรวมในคลัง</h5>
+            <h2>{{ total_items }} ชิ้น</h2>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white p-3 shadow-sm">
+            <h5>มูลค่าสต็อก (ต้นทุน)</h5>
+            <h2>{{ "%.2f"|format(total_cost) }} ฿</h2>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-dark p-3 shadow-sm">
+            <h5>มูลค่าสต็อก (ราคาขาย)</h5>
+            <h2>{{ "%.2f"|format(total_value) }} ฿</h2>
+        </div>
+    </div>
+</div>
+
+<h4 class="text-danger">⚠️ สินค้าที่ต้องสั่งซื้อเพิ่ม (ต่ำกว่าจุด Reorder Point)</h4>
+<table class="table table-bordered bg-white shadow-sm">
+    <thead class="table-danger">
+        <tr>
+            <th>SKU</th>
+            <th>ชื่อสินค้า</th>
+            <th>คงเหลือ</th>
+            <th>จุดสั่งซื้อ</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for p in low_stock_list %}
+        <tr>
+            <td>{{ p.sku }}</td>
+            <td>{{ p.name }}</td>
+            <td><strong class="text-danger">{{ p.qty }}</strong> {{ p.unit }}</td>
+            <td>{{ p.reorder_point }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" class="text-center text-success">สต็อกสินค้าอยู่ในระดับปกติทุกรายการ</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

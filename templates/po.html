@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>จัดการข้อมูล Supplier และ ใบสั่งซื้อ (PO)</h2>
+
+<div class="row mt-4">
+    <div class="col-md-6">
+        <h4>รายชื่อ Supplier</h4>
+        <ul class="list-group">
+            {% for s in suppliers %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>{{ s.name }}</strong> ({{ s.id }})
+                    <br><small class="text-muted">ติดต่อ: {{ s.contact }}</small>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    <div class="col-md-6">
+        <h4>รายการใบสั่งซื้อ (PO)</h4>
+        <table class="table table-bordered bg-white">
+            <thead class="table-secondary">
+                <tr>
+                    <th>เลขที่ PO</th>
+                    <th>ผู้ขาย</th>
+                    <th>SKU</th>
+                    <th>จำนวน</th>
+                    <th>สถานะ</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for po in pos %}
+                <tr>
+                    <td>{{ po.po_no }}</td>
+                    <td>{{ po.supplier_name }}</td>
+                    <td>{{ po.sku }}</td>
+                    <td>{{ po.qty }}</td>
+                    <td><span class="badge bg-warning text-dark">{{ po.status }}</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

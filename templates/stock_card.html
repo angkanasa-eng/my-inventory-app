@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="mb-3">
+    <a href="{{ url_for('inventory') }}" class="btn btn-outline-secondary">← กลับหน้าหลัก</a>
+</div>
+
+{% if product %}
+<div class="card mb-4 shadow-sm">
+    <div class="card-body">
+        <h3>Stock Card: {{ product.name }} ({{ product.sku }})</h3>
+        <p class="mb-0"><strong>คงเหลือปัจจุบัน:</strong> {{ product.qty }} {{ product.unit }} | <strong>คลัง:</strong> {{ product.warehouse }}</p>
+    </div>
+</div>
+
+<h4>ประวัติการทำรายการ</h4>
+<table class="table table-striped bg-white shadow-sm">
+    <thead class="table-dark">
+        <tr>
+            <th>วัน-เวลา</th>
+            <th>ประเภท</th>
+            <th>จำนวน</th>
+            <th>ยอดคงเหลือหลังทำรายการ</th>
+            <th>เหตุผล</th>
+            <th>ผู้ทำรายการ</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for log in logs %}
+        <tr>
+            <td>{{ log.timestamp }}</td>
+            <td><span class="badge bg-primary">{{ log.type }}</span></td>
+            <td>{{ log.change }}</td>
+            <td><strong>{{ log.balance }}</strong></td>
+            <td>{{ log.reason }}</td>
+            <td>{{ log.user }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" class="text-center">ยังไม่มีประวัติการทำรายการสำหรับสินค้านี้</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+{% endblock %}

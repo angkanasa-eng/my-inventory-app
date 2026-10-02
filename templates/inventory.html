@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>ทะเบียนสินค้า และสต็อกคงเหลือ</h2>
+    <a href="{{ url_for('export_excel') }}" class="btn btn-success">📥 ส่งออกรายงาน Excel</a>
+</div>
+
+<div class="card p-3 mb-4 bg-white shadow-sm">
+    <div class="row g-2">
+        <div class="col-md-8">
+            <form method="GET" action="{{ url_for('inventory') }}" class="row g-2">
+                <div class="col-md-6">
+                    <input type="text" id="searchInput" name="search" class="form-control" placeholder="ค้นหา SKU หรือชื่อสินค้า..." value="{{ search }}">
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-secondary w-100">ค้นหา</button>
+                </div>
+            </form>
+        </div>
+        <div class="col-md-4 text-end">
+            <button class="btn btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#cameraArea">📷 เปิดกล้องสแกนบาร์โค้ด</button>
+        </div>
+    </div>
+    
+    <div class="collapse mt-3" id="cameraArea">
+        <div id="reader" style="width: 100%; max-width: 400px; margin: auto;"></div>
+    </div>
+</div>
+
+<div class="table-responsive bg-white shadow-sm rounded p-2">
+    <table class="table table-hover align-middle">
+        <thead class="table-dark">
+            <tr>
+                <th>รหัส SKU</th>
+                <th>ชื่อสินค้า</th>
+                <th>หมวดหมู่</th>
+                <th>คงเหลือ</th>
+                <th>ราคาทุน / ขาย</th>
+                <th>คลัง</th>
+                <th>จัดการสต็อก</th>
+                <th>Stock Card</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for p in products %}
+            <tr class="{% if p.is_low_stock %}table-danger{% endif %}">
+                <td><strong>{{ p.sku }}</strong></td>
+                <td>{{ p.name }}</td>
+                <td><span class="badge bg-secondary">{{ p.category }}</span></td>
+                <td>
+                    <strong>{{ p.qty }}</strong> {{ p.unit }}
+                    {% if p.is_low_stock %}
+                        <br><span class="badge bg-danger">⚠️ ต่ำกว่าจุดสั่งซื้อ ({{ p.reorder_point }})</span>
+                    {% endif %}
+                </td>
+                <td>{{ "%.2f"|format(p.cost_price) }} / {{ "%.2f"|format(p.sell_price) }} ฿</td>
+                <td>{{ p.warehouse }}</td>
+                <td>
+                    <form action="{{ url_for('stock_transact') }}" method="POST" class="d-flex g-1">
+                        <input type="hidden" name="sku" value="{{ p.sku }}">
+                        <select name="trans_type" class="form-select form-select-sm me-1" style="width: 90px;">
+                            <option value="IN">รับเข้า</option>
+                            <option value="OUT">เบิกออก</option>
+                            <option value="ADJUST">ปรับยอด</option>
+                        </select>
+                        <input type="number" name="qty" min="1" class="form-control form-control-sm me-1" style="width: 70px;" placeholder="จำนวน" required>
+                        <input type="text" name="reason" class="form-control form-control-sm me-1" style="width: 100px;" placeholder="เหตุผล">
+                        <button type="submit" class="btn btn-sm btn-primary">บันทึก</button>
+                    </form>
+                </td>
+                <td>
+                    <a href="{{ url_for('stock_card', sku=p.sku) }}" class="btn btn-sm btn-outline-info">📜 ประวัติ</a>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="8" class="text-center text-muted">ไม่พบข้อมูลสินค้า</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode/html5-qrcode.min.js"></script>
+<script>
+    function onScanSuccess(decodedText) {
+        document.getElementById('searchInput').value = decodedText;
+        alert("สแกนบาร์โค้ดสำเร็จ: " + decodedText);
+    }
+    let html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: {width: 250, height: 250} });
+    html5QrcodeScanner.render(onScanSuccess);
+</script>
+{% endblock %}
